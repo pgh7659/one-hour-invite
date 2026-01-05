@@ -1,0 +1,139 @@
+---
+alwaysApply: true
+---
+
+# Supabase Rules — Server-First Integration
+
+## 0. Goal
+Use Supabase as the single backend platform (Auth, Postgres, Storage) while keeping:
+- **Server-first** data access
+- Strict separation of server/client responsibilities
+- Minimal exposure of secrets
+- Clear patterns for Auth (Email OTP) and Storage (images)
+
+---
+
+## 1. Keys & Environment Variables
+
+### Required env
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+### Server-only env (never exposed to the browser)
+- `SUPABASE_SERVICE_ROLE_KEY` (only for privileged admin/system operations)
+- `ADMIN_EMAIL_ALLOWLIST` (comma-separated)
+- Payment-related secrets (if applicable): `PAYMENT_WEBHOOK_SECRET`, etc.
+
+Rules:
+- `NEXT_PUBLIC_*` can be used on client.
+- Everything else must be accessed only on the server.
+
+---
+
+## 2. Client Factories (Single Source of Truth)
+
+Create Supabase clients only in these files:
+
+- `src/lib/supabase/server.ts`
+  - creates a server client bound to cookies/headers
+  - used in Server Components, Server Actions, Route Handlers
+- `src/lib/supabase/client.ts`
+  - creates a browser client
+  - used only in `"use client"` components when necessary
+
+Never instantiate Supabase clients ad-hoc elsewhere.
+
+---
+
+## 3. Server-First Data Access
+
+Default:
+- Read/write from Server Components or Server Actions using `server.ts`.
+
+Client components must NOT:
+- perform privileged database mutations
+- depend on service role capabilities
+- query sensitive tables directly
+
+Client reads are allowed only for:
+- purely client-only experiences
+- non-sensitive data
+- cases where server streaming is not suitable
+
+---
+
+## 4. Auth (Email OTP)
+
+### Login policy
+- Only Email OTP (no password) for MVP.
+- Do not distinguish between sign-up and sign-in.
+
+### Session handling
+- Server renders should use cookie-based session via server client.
+- Protected routes (`/me`, `/admin`) must check session on the server.
+
+### Route protection
+- Prefer middleware and/or server checks:
+  - middleware for quick redirect gating
+  - server components for final authoritative authorization
+
+---
+
+## 5. Authorization & RLS Strategy
+
+MVP strategy:
+- Keep RLS enabled.
+- Prefer server-side reads/writes (Server Actions / Route Handlers) where authorization can be validated explicitly.
+
+When using RLS:
+- All tables must have explicit policies (no implicit public access).
+- Public reads must be limited to what is required for `/i/[hash]`.
+
+Admin access:
+- Use server-only key or explicit checks (email allowlist + server queries).
+- Never allow client-side admin operations.
+
+---
+
+## 6. Storage (Images)
+
+### Storage ownership
+- Store original images in Supabase Storage.
+- Serve images via:
+  - transformed URLs (size/quality) for thumbnails and main images
+  - `next/image` for layout stability and lazy loading
+
+### Upload constraints
+- Restrict:
+  - allowed mime types (jpeg/png/heic; optionally webp)
+  - max file size
+  - max number of images per invitation
+
+### Security rules
+- Upload must be authorized (server-side signed upload if needed).
+- Avoid public write access on buckets.
+
+---
+
+## 7. Webhooks (Payment, etc.)
+
+- Webhooks must be implemented in `src/app/api/**`.
+- Always verify signatures/secrets.
+- Ensure idempotency using a unique provider event/payment id.
+- Store raw webhook payloads for debugging (server-side only).
+
+---
+
+## 8. Do / Don’t Summary
+
+### Do
+- Use server client for most access.
+- Keep secrets server-only.
+- Validate all inputs in server actions.
+- Use explicit policies and ownership rules.
+
+### Don’t
+- Don’t put service role key in client code.
+- Don’t query sensitive tables from client.
+- Don’t create Supabase clients in random files.
+- Don’t rely on UI-only checks for authorization.

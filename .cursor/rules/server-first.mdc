@@ -1,0 +1,110 @@
+---
+alwaysApply: true
+---
+
+# Server-First Architecture — RSC & Server Actions
+
+## Overview
+This project follows a **Server-First** approach based on the Next.js App Router model.
+
+> Server Components are the default.  
+> Client Components are the exception.
+
+The architecture prioritizes:
+- React Server Components (RSC)
+- Server Actions for mutations
+- Explicit caching and revalidation
+- Minimal client-side JavaScript
+
+---
+
+## 1. Default to Server Components
+
+- All components are **Server Components by default**
+- Add `"use client"` only when absolutely required:
+  - browser-only APIs (window, document)
+  - local interactive state (onChange, animations)
+  - client-only libraries
+
+Rules:
+- Never mark a route root as `"use client"` unless unavoidable
+- Keep client components small and isolated (client islands)
+
+---
+
+## 2. Data Fetching Rules
+
+- Fetch core page data on the server:
+  - inside `page.tsx`
+  - inside server-only utilities under `api/`
+- Do not fetch primary data in `useEffect`
+- Client-side fetching is allowed only for:
+  - purely interactive UX
+  - non-critical, secondary data
+
+Use:
+- Streaming and Suspense where appropriate
+- `loading.tsx` for route-level loading states
+
+---
+
+## 3. Mutations: Server Actions First
+
+- All create/update/delete flows must use **Server Actions** by default
+- Avoid REST endpoints unless required for:
+  - third-party webhooks
+  - external clients
+  - admin/system integrations
+
+A Server Action must own:
+- input validation
+- database transaction
+- cache invalidation
+- returning minimal data for UI updates
+
+---
+
+## 4. Cache as a First-Class Concern
+
+- Caching is part of domain design
+- Always define cache boundaries intentionally
+- After a mutation:
+  - explicitly invalidate affected caches
+  - ensure UI consistency without client refetch hacks
+
+---
+
+## 5. Server / Client Boundaries
+
+- Server-only code:
+  - database access
+  - admin operations
+  - secrets
+- Must never be imported by client components
+
+Recommended patterns:
+- `*.server.ts` for server-only modules
+- `*.client.ts` for client-only wrappers if needed
+
+---
+
+## 6. Supabase Usage (Server-First)
+
+- Prefer server-side Supabase access using SSR clients
+- Never expose service-role keys to the client
+- Client components must not perform privileged mutations
+
+---
+
+## 7. Validation & Safety
+
+- Validate all external input at runtime (forms, params, actions)
+- Fail fast with user-friendly errors
+- Do not rely on type safety alone
+
+---
+
+## Core Principle
+
+> “If it can be server-rendered, it should be server-rendered.  
+> Client-side code is an exception, not the default.”

@@ -1,0 +1,118 @@
+---
+alwaysApply: true
+---
+# Server Action Patterns — Forms, Mutations, and Cache
+
+## 0. Goal
+Use Server Actions as the default mutation mechanism:
+- input validation on server
+- DB transaction on server
+- cache invalidation on server
+- minimal client JS
+
+---
+
+## 1. When to Use Server Actions vs Route Handlers
+
+### Use Server Actions for:
+- form submissions
+- authenticated mutations
+- internal app-only mutations (create/update/delete invitations, claim, RSVP)
+
+### Use Route Handlers (`src/app/api/**`) for:
+- payment webhooks
+- third-party callbacks
+- external clients (if ever needed)
+
+---
+
+## 2. Action File Placement
+
+Inside a route segment:
+- place actions under `src/app/<route>/api/actions.server.ts` (recommended)
+
+Example:
+```
+src/app/mypage/api/actions.server.ts
+src/app/invitations/api/actions.server.ts
+```
+
+Rules:
+- Action files must be server-only.
+- Export actions explicitly (no default exports).
+- Keep actions small; call domain functions for business rules.
+
+---
+
+## 3. Validation Pattern (Required)
+
+Every server action must:
+1. parse input using a schema
+2. reject invalid input with a typed error
+
+Example result shape:
+- `{ ok: true, data }`
+- `{ ok: false, error: { code, message, fieldErrors? } }`
+
+---
+
+## 4. Mutation Pattern (DB + Domain)
+
+Action responsibilities:
+- authorization check (session, ownership, admin)
+- domain rule evaluation (pure function)
+- DB transaction (insert/update)
+- audit logging where applicable
+
+Keep domain rules out of DB code:
+- `domain/` contains access and state transition rules
+- `api/` handles IO (Supabase)
+
+---
+
+## 5. Cache Invalidation (Required)
+
+After a successful mutation:
+- invalidate the right boundaries so UI remains consistent.
+
+Recommended:
+- use tags-based invalidation where possible
+- ensure invitation public page cache refreshes after edit/publish
+- ensure `/me` lists refresh after claim or payment
+
+Rule:
+- Never rely on client-side refetch hacks as the primary consistency mechanism.
+
+---
+
+## 6. Client Integration
+
+Use Server Actions via:
+- `<form action={action}>` where possible
+- minimal client wrappers for optimistic UI only
+
+Rules:
+- Keep `"use client"` islands small
+- avoid passing large objects through actions; pass ids and minimal payloads
+- never pass secrets
+
+---
+
+## 7. Idempotency & Concurrency
+
+Actions that can be double-submitted must be safe:
+- claim should be conflict-safe (409 if already claimed)
+- payment confirmation should be idempotent
+- edits should avoid overwriting with stale data (optional: updated_at checks)
+
+---
+
+## 8. Example Action Checklist
+
+Before finalizing any action, confirm:
+- [ ] Input schema validation exists
+- [ ] AuthZ check exists (owner/admin)
+- [ ] Domain rules applied (expired/blocked constraints)
+- [ ] DB write is transactional
+- [ ] Cache invalidation is performed
+- [ ] Returns typed result to UI
