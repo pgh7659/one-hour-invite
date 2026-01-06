@@ -1,0 +1,383 @@
+---
+alwaysApply: true
+---
+
+# UI & Form Patterns — shadcn/ui + react-hook-form + zod
+
+## 0. Goal
+Establish consistent UI and form patterns:
+- Use shadcn/ui components as the base UI library
+- Integrate react-hook-form with zod for form validation
+- Maintain Server-First principles with form submissions
+- Ensure type-safe, accessible, and consistent UI
+
+---
+
+## 1. shadcn/ui Setup & Usage
+
+### 1.1 Initial Setup
+Install and configure shadcn/ui:
+
+```bash
+npx shadcn@latest init
+```
+
+Recommended settings:
+- TypeScript: Yes
+- Style: Default
+- Base color: Slate
+- CSS variables: Yes
+
+### 1.2 Component Installation
+Add components as needed:
+
+```bash
+npx shadcn@latest add button
+npx shadcn@latest add form
+npx shadcn@latest add input
+npx shadcn@latest add select
+npx shadcn@latest add dialog
+npx shadcn@latest add toast
+```
+
+### 1.3 Component Customization
+- Customize components in `src/components/ui/` after installation
+- Use CSS variables for theming (defined in `globals.css`)
+- Prefer composition over modification
+
+---
+
+## 2. Form Patterns with react-hook-form + zod
+
+### 2.1 Schema Definition
+Define Zod schemas in route's `types/` or `api/` folder:
+
+```typescript
+// src/app/mypage/api/schemas.ts
+import { z } from "zod";
+
+export const createInvitationSchema = z.object({
+  title: z.string().min(1, "제목을 입력해주세요").max(100),
+  description: z.string().optional(),
+  eventDate: z.string().datetime(),
+  maxGuests: z.number().int().positive().optional(),
+});
+
+export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
+```
+
+### 2.2 Server Action with Schema Validation
+Use the same schema in Server Actions:
+
+```typescript
+// src/app/mypage/api/actions.server.ts
+"use server";
+
+import { createInvitationSchema } from "./schemas";
+import { createInvitation } from "./mutations";
+
+export async function createInvitationAction(
+  input: unknown
+): Promise<{ ok: true; data: Invitation } | { ok: false; error: { code: string; message: string; fieldErrors?: Record<string, string[]> } }> {
+  const result = createInvitationSchema.safeParse(input);
+  
+  if (!result.success) {
+    return {
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "입력값이 올바르지 않습니다",
+        fieldErrors: result.error.flatten().fieldErrors,
+      },
+    };
+  }
+  
+  // ... mutation logic
+}
+```
+
+### 2.3 Client Form Component
+Create form components using react-hook-form:
+
+```typescript
+// src/app/mypage/components/create-invitation-form.tsx
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createInvitationSchema, type CreateInvitationInput } from "../api/schemas";
+import { createInvitationAction } from "../api/actions.server";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+
+export function CreateInvitationForm() {
+  const { toast } = useToast();
+  const form = useForm<CreateInvitationInput>({
+    resolver: zodResolver(createInvitationSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      maxGuests: undefined,
+    },
+  });
+
+  async function onSubmit(data: CreateInvitationInput) {
+    const result = await createInvitationAction(data);
+    
+    if (!result.ok) {
+      if (result.error.fieldErrors) {
+        Object.entries(result.error.fieldErrors).forEach(([field, errors]) => {
+          form.setError(field as keyof CreateInvitationInput, {
+            message: errors?.[0] ?? result.error.message,
+          });
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "오류",
+          description: result.error.message,
+        });
+      }
+      return;
+    }
+    
+    toast({
+      title: "성공",
+      description: "초대장이 생성되었습니다",
+    });
+    form.reset();
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>제목</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        {/* ... more fields ... */}
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          생성하기
+        </Button>
+      </form>
+    </Form>
+  );
+}
+```
+
+---
+
+## 3. Form Component Structure
+
+### 3.1 File Organization
+Place form-related code in route's structure:
+
+```
+src/app/mypage/
+  components/
+    create-invitation-form.tsx  # Form UI component
+  api/
+    schemas.ts                  # Zod schemas
+    actions.server.ts           # Server Actions
+  types/
+    index.ts                    # Type exports (if needed)
+```
+
+### 3.2 Form Component Rules
+- Form components must be Client Components (`"use client"`)
+- Use `react-hook-form` for form state management
+- Use `zodResolver` for validation
+- Call Server Actions on submit
+- Handle errors and show user feedback
+
+---
+
+## 4. shadcn/ui Component Usage
+
+### 4.1 Preferred Components
+Use shadcn/ui components for:
+- Forms: `Form`, `FormField`, `FormItem`, `FormLabel`, `FormControl`, `FormMessage`
+- Inputs: `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`
+- Buttons: `Button` (with variants: default, destructive, outline, secondary, ghost, link)
+- Feedback: `Toast`, `Alert`, `Dialog`
+- Layout: `Card`, `Separator`, `Tabs`
+
+### 4.2 Component Variants
+Use built-in variants for consistency:
+
+```typescript
+<Button variant="default" size="default">Submit</Button>
+<Button variant="destructive" size="sm">Delete</Button>
+<Button variant="outline" size="lg">Cancel</Button>
+```
+
+### 4.3 Customization
+- Customize via CSS variables in `globals.css`
+- Extend components in `src/components/ui/` when needed
+- Maintain accessibility (ARIA attributes are handled by shadcn/ui)
+
+---
+
+## 5. Error Handling Patterns
+
+### 5.1 Field-Level Errors
+Display field errors using `FormMessage`:
+
+```typescript
+<FormField
+  control={form.control}
+  name="email"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>이메일</FormLabel>
+      <FormControl>
+        <Input type="email" {...field} />
+      </FormControl>
+      <FormMessage /> {/* Automatically shows field errors */}
+    </FormItem>
+  )}
+/>
+```
+
+### 5.2 Form-Level Errors
+Show form-level errors with Toast or Alert:
+
+```typescript
+if (!result.ok && !result.error.fieldErrors) {
+  toast({
+    variant: "destructive",
+    title: "오류",
+    description: result.error.message,
+  });
+}
+```
+
+### 5.3 Server Action Error Response
+Server Actions must return structured errors:
+
+```typescript
+{
+  ok: false,
+  error: {
+    code: "VALIDATION_ERROR" | "UNAUTHORIZED" | "NOT_FOUND" | "CONFLICT" | "INTERNAL_ERROR",
+    message: string,
+    fieldErrors?: Record<string, string[]>, // For validation errors
+  }
+}
+```
+
+---
+
+## 6. Integration with Server Actions
+
+### 6.1 Form Submission Flow
+1. User submits form
+2. `react-hook-form` validates client-side (optional, for UX)
+3. Form calls Server Action with validated data
+4. Server Action validates again with Zod schema
+5. Server Action performs mutation
+6. Client handles result (success/error)
+7. Client updates UI (reset form, show toast, invalidate queries)
+
+### 6.2 Loading States
+Handle loading states:
+
+```typescript
+const form = useForm(...);
+const isSubmitting = form.formState.isSubmitting;
+
+<Button type="submit" disabled={isSubmitting}>
+  {isSubmitting ? "처리 중..." : "제출"}
+</Button>
+```
+
+---
+
+## 7. Type Safety
+
+### 7.1 Schema-to-Type
+Always derive TypeScript types from Zod schemas:
+
+```typescript
+import { z } from "zod";
+
+const schema = z.object({ ... });
+export type SchemaType = z.infer<typeof schema>;
+```
+
+### 7.2 Form Types
+Use inferred types for form:
+
+```typescript
+const form = useForm<CreateInvitationInput>({
+  resolver: zodResolver(createInvitationSchema),
+});
+```
+
+---
+
+## 8. Accessibility
+
+### 8.1 shadcn/ui Components
+- shadcn/ui components are accessible by default
+- Include proper ARIA attributes
+- Support keyboard navigation
+
+### 8.2 Form Labels
+Always use `FormLabel` (not plain `<label>`):
+
+```typescript
+<FormLabel>이메일</FormLabel>
+```
+
+### 8.3 Error Messages
+Use `FormMessage` for accessible error display:
+
+```typescript
+<FormMessage /> {/* Automatically associated with field */}
+```
+
+---
+
+## 9. Do / Don't Summary
+
+### Do
+- Use shadcn/ui components for all UI elements
+- Use react-hook-form + zod for all forms
+- Share Zod schemas between client and server
+- Validate on both client (UX) and server (security)
+- Use Toast for user feedback
+- Keep form components as Client Components
+
+### Don't
+- Don't create custom form components when shadcn/ui exists
+- Don't skip server-side validation
+- Don't use different schemas on client/server
+- Don't forget error handling
+- Don't bypass react-hook-form for form state
+
+---
+
+## 10. Example Checklist
+
+Before finalizing a form, confirm:
+- [ ] Zod schema is defined
+- [ ] Schema is used in Server Action validation
+- [ ] Form uses `react-hook-form` with `zodResolver`
+- [ ] Form uses shadcn/ui `Form` components
+- [ ] Field errors are displayed with `FormMessage`
+- [ ] Form-level errors are shown with Toast
+- [ ] Loading states are handled
+- [ ] Success feedback is provided
+- [ ] TypeScript types are inferred from schema

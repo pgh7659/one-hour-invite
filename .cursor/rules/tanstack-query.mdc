@@ -1,0 +1,303 @@
+---
+alwaysApply: true
+---
+
+# TanStack Query — Prefetch & Dehydrate Patterns
+
+## 0. Goal
+Use TanStack Query (React Query) for client-side data fetching and caching:
+- Prefetch data on the server when beneficial
+- Dehydrate server-fetched data to client
+- Maintain Server-First principles while enabling rich client interactions
+- Optimistic updates and background refetching
+
+---
+
+## 1. When to Use TanStack Query
+
+### Use TanStack Query for:
+- Client-side data that needs caching/refetching
+- Optimistic updates after mutations
+- Background data synchronization
+- Pagination, infinite scroll, or real-time updates
+- Data that benefits from client-side cache invalidation
+
+### Do NOT use TanStack Query for:
+- Initial page data (use Server Components)
+- Server Actions (use form actions directly)
+- Static or rarely-changing data (use Server Components)
+
+---
+
+## 2. Setup Pattern
+
+### 2.1 Provider Setup
+Create `src/lib/providers/query-provider.tsx`:
+
+```typescript
+"use client";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { useState } from "react";
+
+export function QueryProvider({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000, // 1 minute
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  );
+}
+```
+
+### 2.2 Root Layout Integration
+Wrap app in `src/app/layout.tsx`:
+
+```typescript
+import { QueryProvider } from "@/lib/providers/query-provider";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <QueryProvider>{children}</QueryProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+---
+
+## 3. Prefetch + Dehydrate Pattern
+
+### 3.1 Server-Side Prefetch
+Prefetch data in Server Components or Route Handlers:
+
+```typescript
+// src/app/mypage/page.tsx
+import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
+import { getQueryClient } from "@/lib/query-client";
+import { prefetchInvitations } from "./api/prefetch";
+
+export default async function MyPage() {
+  const queryClient = getQueryClient();
+  
+  await prefetchInvitations(queryClient);
+  
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <InvitationsList />
+    </HydrationBoundary>
+  );
+}
+```
+
+### 3.2 Query Client Factory (Server-Safe)
+Create `src/lib/query-client.ts`:
+
+```typescript
+import { QueryClient } from "@tanstack/react-query";
+import { cache } from "react";
+
+export const getQueryClient = cache(() => new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+    },
+  },
+}));
+```
+
+### 3.3 Prefetch Functions
+Place prefetch logic in route's `api/` folder:
+
+```typescript
+// src/app/mypage/api/prefetch.ts
+import { QueryClient } from "@tanstack/react-query";
+import { getInvitations } from "./queries";
+
+export async function prefetchInvitations(queryClient: QueryClient) {
+  await queryClient.prefetchQuery({
+    queryKey: ["invitations"],
+    queryFn: getInvitations,
+  });
+}
+```
+
+---
+
+## 4. Query Hooks Pattern
+
+### 4.1 Query Functions
+Define query functions in route's `api/queries.ts`:
+
+```typescript
+// src/app/mypage/api/queries.ts
+import { createClient } from "@/lib/supabase/server";
+
+export async function getInvitations() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invitations")
+    .select("*")
+    .order("created_at", { ascending: false });
+  
+  if (error) throw error;
+  return data;
+}
+```
+
+### 4.2 Custom Hooks
+Create hooks in route's `hooks/` folder:
+
+```typescript
+// src/app/mypage/hooks/use-invitations.ts
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { getInvitations } from "../api/queries";
+
+export function useInvitations() {
+  return useQuery({
+    queryKey: ["invitations"],
+    queryFn: getInvitations,
+  });
+}
+```
+
+---
+
+## 5. Mutations with TanStack Query
+
+### 5.1 Invalidate After Server Actions
+After Server Actions, invalidate queries:
+
+```typescript
+"use client";
+
+import { useQueryClient } from "@tanstack/react-query";
+import { createInvitation } from "./api/actions.server";
+
+export function CreateInvitationForm() {
+  const queryClient = useQueryClient();
+  
+  async function handleSubmit(formData: FormData) {
+    const result = await createInvitation(formData);
+    if (result.ok) {
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    }
+  }
+  
+  return <form action={handleSubmit}>...</form>;
+}
+```
+
+### 5.2 Optimistic Updates
+For better UX, use optimistic updates:
+
+```typescript
+"use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateInvitation } from "./api/actions.server";
+
+export function useUpdateInvitation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: updateInvitation,
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ["invitations"] });
+      const previous = queryClient.getQueryData(["invitations"]);
+      queryClient.setQueryData(["invitations"], (old) => 
+        old.map((item) => item.id === newData.id ? { ...item, ...newData } : item)
+      );
+      return { previous };
+    },
+    onError: (err, newData, context) => {
+      queryClient.setQueryData(["invitations"], context.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    },
+  });
+}
+```
+
+---
+
+## 6. Integration with Server Actions
+
+### Rules:
+- Server Actions remain the source of truth for mutations
+- TanStack Query handles cache invalidation and optimistic UI
+- Never bypass Server Actions to mutate data directly from queries
+
+### Pattern:
+1. Server Action performs the mutation
+2. Server Action returns `{ ok: true, data }` or `{ ok: false, error }`
+3. Client hook invalidates queries on success
+4. Optional: Use optimistic updates for instant feedback
+
+---
+
+## 7. Query Key Conventions
+
+Use consistent query key patterns:
+
+```typescript
+// Single resource
+["invitation", id]
+
+// List
+["invitations"]
+
+// Filtered list
+["invitations", { status: "active" }]
+
+// Paginated list
+["invitations", { page: 1, limit: 10 }]
+```
+
+---
+
+## 8. Do / Don't Summary
+
+### Do
+- Prefetch critical data on the server
+- Use dehydrate/hydrate for SSR
+- Invalidate queries after mutations
+- Use optimistic updates for better UX
+- Keep query functions in route's `api/` folder
+
+### Don't
+- Don't use TanStack Query for initial page data (use Server Components)
+- Don't bypass Server Actions
+- Don't create queries in client components (use hooks)
+- Don't forget to invalidate after mutations
+
+---
+
+## 9. Example Checklist
+
+Before using TanStack Query, confirm:
+- [ ] Data benefits from client-side caching/refetching
+- [ ] Query function is in route's `api/queries.ts`
+- [ ] Custom hook is in route's `hooks/` folder
+- [ ] Prefetch is used when beneficial
+- [ ] Mutations invalidate related queries
+- [ ] Optimistic updates are used when appropriate
