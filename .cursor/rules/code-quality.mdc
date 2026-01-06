@@ -1,0 +1,110 @@
+---
+alwaysApply: true
+---
+
+# Coding & Quality Rules — TypeScript + Biome + Tailwind
+
+## 0. Goal
+Maintain consistent, readable, and safe code:
+- TypeScript strict
+- Biome as the single formatter/linter
+- TailwindCSS for styling
+- Clear error handling and predictable API behaviors
+
+---
+
+## 1. TypeScript Rules
+
+- `strict: true` must remain enabled.
+- Avoid `any`. Use `unknown` + runtime validation.
+- Prefer discriminated unions for state and result objects.
+
+### Naming
+- Types/Interfaces: `PascalCase`
+- Functions/variables: `camelCase`
+- Constants: `SCREAMING_SNAKE_CASE` (only for true constants)
+
+---
+
+## 2. Runtime Validation
+
+- All external inputs must be validated at runtime:
+  - form inputs
+  - route params
+  - search params
+  - server action payloads
+- Use schema validation (Zod recommended).
+- Do not trust TypeScript types for user input.
+
+---
+
+## 3. Error Handling Rules
+
+- Never throw raw DB errors to UI.
+- Convert errors to user-friendly messages.
+- Prefer typed results:
+  - `Result<T, E>` style or `{ ok: true, data } | { ok: false, error }`
+
+### Logging
+- Log unexpected errors on server (structured).
+- Avoid logging secrets or user PII.
+
+---
+
+## 4. API / Server Action Response Conventions
+
+- Use consistent response shapes for route handlers:
+  - success: `{ ok: true, data }`
+  - failure: `{ ok: false, error: { code, message } }`
+
+- Use proper HTTP status codes:
+  - 200/201 for success
+  - 400 for validation error
+  - 401 for unauthenticated
+  - 403 for unauthorized
+  - 404 only for truly missing resources (NOT for expired invitations)
+  - 409 for conflicts (duplicate claim, duplicate payment, etc.)
+  - 500 for unexpected errors
+
+---
+
+## 5. Biome Rules
+
+- Biome is the only source of formatting and linting.
+- Do not add ESLint/Prettier unless explicitly required.
+- Code must be auto-formatted before commit.
+
+---
+
+## 6. Tailwind Rules
+
+- Use Tailwind utilities for styling.
+- Prefer small, reusable UI primitives.
+- Avoid overly long class strings when it harms readability:
+  - extract to a component or `cn()` helper when needed
+
+---
+
+## 7. React / Next Rules
+
+- Server Components by default.
+- `"use client"` only where necessary.
+- Do not fetch main data in `useEffect`.
+- Prefer server streaming and Suspense.
+
+---
+
+## 8. File-Level Boundaries
+
+- `*.server.ts` files must not be imported by client components.
+- `*.client.ts` wrappers can be used to isolate browser-only logic.
+- Keep business logic pure in `domain/` (no React, no I/O).
+
+---
+
+## 9. Testing (Optional, MVP-friendly)
+
+- Focus on unit tests for:
+  - `domain/` rules (pure functions)
+  - access evaluation logic (expired/blocked rules)
+- Avoid UI snapshot tests unless required.

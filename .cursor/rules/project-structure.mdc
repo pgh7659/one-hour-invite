@@ -1,0 +1,97 @@
+---
+alwaysApply: true
+---
+
+# Project Structure — App Router Segment Colocation
+
+## Overview
+This project is built with:
+- Next.js (App Router)
+- TypeScript (strict)
+- Biome
+- TailwindCSS
+- Supabase
+
+The core architectural principle is **route-segment colocation**.
+
+> Each App Router route segment owns all UI, logic, types, and data-access code required for that route.
+
+---
+
+## Core Architecture: Route-Segment Colocation
+
+- `src/app/<route>/` is the **boundary of a feature/page**
+- All code related to a route must live inside its route segment directory
+- No separate top-level `domains/` or `features/` directories are used
+
+The App Router itself defines the feature boundaries.
+
+---
+
+## Canonical Route Structure
+
+For a route segment `X` (e.g. `/mypage`):
+```
+src/app/X/
+page.tsx
+layout.tsx
+loading.tsx        // optional
+error.tsx          // optional
+
+components/        // UI components used only by this route
+api/               // data access & mutation helpers
+domain/            // pure business rules (no React, no I/O)
+hooks/             // route-specific hooks (client-only if needed)
+types/             // types and schemas
+constants/         // route constants (optional)
+```
+---
+
+## Ownership Rules
+
+- All code under `app/X/**` is owned exclusively by route `X`
+- Code inside one route must **not** be imported by another route
+- Cross-route reuse is forbidden via deep imports
+
+If multiple routes require the same logic:
+- Extract it into `src/shared/`
+- Shared code must be truly generic and used by more than one route
+
+---
+
+## Role of App Router Files
+
+- `page.tsx` and `layout.tsx` must remain thin
+- They should:
+  - compose components from sibling folders
+  - avoid business logic and heavy data processing
+- Business rules and data access belong in:
+  - `domain/`
+  - `api/`
+
+---
+
+## Import Rules
+
+1. A route may freely import from its own subfolders
+2. Cross-route imports are not allowed
+3. Shared logic must live in `src/shared/`
+4. Do not create implicit dependencies between routes
+
+---
+
+## Supabase Placement
+
+- Supabase client factories live in:
+  - `src/lib/supabase/server.ts`
+  - `src/lib/supabase/client.ts`
+- Route-level `api/` modules may call Supabase clients
+- UI components must not directly access Supabase unless trivial and read-only
+
+---
+
+## Guiding Principle
+
+> “The route is the feature boundary.”
+
+If ownership is unclear, the code belongs to the route that renders it.
