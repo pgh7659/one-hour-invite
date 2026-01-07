@@ -14,11 +14,21 @@ Maintain consistent commit messages in Korean:
 
 ## 1. Language Requirement
 
-**MANDATORY**: All commit messages must be written in **Korean (한글)**.
+**CRITICAL - MANDATORY**: All commit messages MUST be written in **Korean (한글)** ONLY.
 
-- Do not use English for commit messages
-- Use Korean for all commit message generation
-- This applies to both manual commits and auto-generated commit messages
+**DO NOT USE ENGLISH FOR COMMIT MESSAGES.**
+
+- ❌ NEVER use English for commit messages
+- ✅ ALWAYS use Korean (한글) for commit messages
+- ✅ Use Korean for ALL commit message generation (manual and auto-generated)
+- ✅ When generating commit messages automatically, you MUST write in Korean
+- ✅ Subject, body, and all parts of commit messages must be in Korean
+
+**This rule applies to:**
+- Manual commit messages
+- Auto-generated commit messages
+- AI-generated commit messages
+- All commit message suggestions
 
 ---
 
@@ -137,11 +147,30 @@ BREAKING CHANGE: Server Action 응답 형식이 { ok, data }에서 { success, pa
 
 ## 6. Auto-generation Rules
 
-When generating commit messages automatically:
-- Always use Korean language
-- Follow the format above
-- Include relevant details about changes
-- Use appropriate type based on changes
+**CRITICAL**: When generating commit messages automatically:
+- ✅ **MUST ALWAYS use Korean language** - Never use English
+- ✅ Follow the format above
+- ✅ Include relevant details about changes in Korean
+- ✅ Use appropriate type based on changes
+- ✅ Translate all English words to Korean
+- ✅ Write subject and body entirely in Korean
+
+**Example of correct auto-generation:**
+```
+feat: 프로젝트 의존성 및 설정 업데이트
+
+- pnpm을 패키지 매니저로 추가하고 package.json에 버전 명시
+- 새로운 의존성 추가: @hookform/resolvers, @tanstack/react-query, react-hook-form, zod
+- package-lock.json 제거 및 pnpm-lock.yaml 추가
+- .gitignore에 pnpm 관련 파일 및 IDE 설정 추가
+- React Query 클라이언트 관리를 위한 QueryProvider 생성 및 레이아웃에 통합
+- Biome 포맷팅을 위한 VSCode 설정 추가
+```
+
+**NOT like this (WRONG):**
+```
+feat: update project dependencies and configuration  // ❌ English
+```
 
 ---
 
