@@ -1,5 +1,6 @@
 import { type CookieOptions, createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin";
 import { publicEnv, serverEnv } from "@/lib/env";
 
 export async function proxy(request: NextRequest) {
@@ -60,14 +61,10 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    // Protect /admin routes with email allowlist (if configured)
+    // Protect /admin routes with admin check
     if (request.nextUrl.pathname.startsWith("/admin") && user) {
-      const adminAllowlist = serverEnv.ADMIN_EMAIL_ALLOWLIST;
-      if (
-        adminAllowlist &&
-        adminAllowlist.length > 0 &&
-        !adminAllowlist.includes(user.email ?? "")
-      ) {
+      const userIsAdmin = await isAdmin(user.id);
+      if (!userIsAdmin) {
         return NextResponse.redirect(new URL("/", request.url));
       }
     }
