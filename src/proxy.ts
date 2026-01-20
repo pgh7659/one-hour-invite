@@ -1,6 +1,6 @@
 import { type CookieOptions, createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import { publicEnv } from "@/lib/env";
+import { publicEnv, serverEnv } from "@/lib/env";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
@@ -46,8 +46,8 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Skip auth checks in development mode (for easier development)
-  const isDevelopment = process.env.NODE_ENV === "development";
-  const skipAuth = process.env.SKIP_AUTH_CHECK === "true";
+  const isDevelopment = serverEnv.NODE_ENV === "development";
+  const skipAuth = serverEnv.SKIP_AUTH_CHECK;
 
   if (!isDevelopment && !skipAuth) {
     // Protect /me and /admin routes
@@ -62,9 +62,7 @@ export async function proxy(request: NextRequest) {
 
     // Protect /admin routes with email allowlist (if configured)
     if (request.nextUrl.pathname.startsWith("/admin") && user) {
-      const adminAllowlist = process.env.ADMIN_EMAIL_ALLOWLIST?.split(",").map(
-        (email) => email.trim(),
-      );
+      const adminAllowlist = serverEnv.ADMIN_EMAIL_ALLOWLIST;
       if (
         adminAllowlist &&
         adminAllowlist.length > 0 &&
