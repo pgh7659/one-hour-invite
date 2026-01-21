@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# One Hour Invite
 
-## Getting Started
+다양한 종류의 초대장을 생성하고 관리하는 서비스입니다.
 
-First, run the development server:
+## 기술 스택
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: Supabase Auth (Email OTP)
+- **Styling**: Tailwind CSS
+- **Form**: react-hook-form + zod
+- **Data Fetching**: TanStack Query
+- **Linting/Formatting**: Biome
+
+## 빠른 시작
+
+### 사전 요구사항
+
+- Node.js 20 이상
+- pnpm 10.0.0 이상
+- Supabase 계정 및 프로젝트
+
+### 설치 및 실행
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# 패키지 설치
+pnpm install
+
+# 환경변수 설정
+cp .env.example .env.local
+# .env.local 파일을 편집하여 Supabase 키 설정
+
+# 개발 서버 실행
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+자세한 셋업 가이드는 [docs/setup.md](./docs/setup.md)를 참고하세요.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 프로젝트 문서
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 아키텍처 및 구조
 
-## Learn More
+- **[architecture.md](./docs/architecture.md)** - 전체 아키텍처 개요
+  - Server-First 원칙
+  - 라우트 구조 및 co-location 패턴
+  - 파일 구조 설명
+  - 데이터 흐름
 
-To learn more about Next.js, take a look at the following resources:
+### 데이터베이스
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **[database.md](./docs/database.md)** - 데이터베이스 구조 및 역할
+  - 테이블 구조 (invitations, payments, rsvps, audit_logs)
+  - RLS (Row Level Security) 정책
+  - 데이터베이스 함수
+  - 자동 만료 처리
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 인증
 
-## Deploy on Vercel
+- **[authentication.md](./docs/authentication.md)** - 인증 처리 방식
+  - Email OTP 방식
+  - Supabase Client 생성 (서버/클라이언트)
+  - 세션 관리
+  - 보호된 라우트
+  - 권한 확인 패턴
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 환경변수
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **[environment.md](./docs/environment.md)** - 환경변수 설명
+  - 각 환경변수의 역할
+  - 설정 방법
+  - 개발/프로덕션 차이
+
+### 셋업 가이드
+
+- **[setup.md](./docs/setup.md)** - 프로젝트 셋업 가이드
+  - 초기 설정 단계
+  - 필요한 도구 및 패키지
+  - 개발 환경 설정
+
+## 주요 기능
+
+- 게스트 모드 초대장 생성 (1시간 무료 사용)
+- 결제 후 소유권 주장
+- Email OTP 인증
+- RSVP (참석 여부) 응답
+- 자동 만료 처리
+
+## 개발 명령어
+
+```bash
+pnpm dev          # 개발 서버 실행
+pnpm build        # 프로덕션 빌드
+pnpm start        # 프로덕션 서버 실행
+pnpm lint         # 린트 체크
+pnpm format       # 코드 포맷팅
+```
+
+## 프로젝트 구조
+
+```
+one-hour-invite/
+├── src/
+│   ├── app/              # Next.js App Router 라우트
+│   ├── lib/              # 공유 유틸리티
+│   └── proxy.ts          # 인증/세션 관리
+├── docs/                 # 프로젝트 문서
+└── .cursor/rules/        # Cursor IDE 규칙
+```
+
+자세한 구조는 [architecture.md](./docs/architecture.md)를 참고하세요.
+
+## 라이선스
+
+Private

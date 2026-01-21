@@ -17,10 +17,10 @@ Use Supabase as the single backend platform (Auth, Postgres, Storage) while keep
 
 ### Required env
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (새 키 시스템: Publishable key from Supabase dashboard)
 
 ### Server-only env (never exposed to the browser)
-- `SUPABASE_SERVICE_ROLE_KEY` (only for privileged admin/system operations)
+- `SUPABASE_SECRET_KEY` (새 키 시스템: Secret key from Supabase dashboard, only for privileged admin/system operations)
 - `ADMIN_EMAIL_ALLOWLIST` (comma-separated)
 - Payment-related secrets (if applicable): `PAYMENT_WEBHOOK_SECRET`, etc.
 

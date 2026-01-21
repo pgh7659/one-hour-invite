@@ -78,9 +78,10 @@ pnpm add react-hook-form @hookform/resolvers
 
 필수 키:
 - `NEXT_PUBLIC_SUPABASE_URL=`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY=`
-- `SUPABASE_SERVICE_ROLE_KEY=` (server-only)
-- `ADMIN_EMAIL_ALLOWLIST=` (comma-separated; server-only)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=` (새 키 시스템: Publishable key)
+- `SUPABASE_SECRET_KEY=` (server-only, 새 키 시스템: Secret key)
+
+참고: 관리자 목록은 `admins` 테이블에서 관리합니다.
 
 > 결제 붙이면:
 - `PAYMENT_WEBHOOK_SECRET=`

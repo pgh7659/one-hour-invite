@@ -1,0 +1,184 @@
+---
+alwaysApply: true
+---
+
+# Commit Message Rules
+
+## 0. Goal
+Maintain consistent commit messages in Korean:
+- All commit messages must be written in Korean
+- Follow conventional commit format
+- Provide clear, descriptive messages
+
+---
+
+## 1. Language Requirement
+
+**CRITICAL - MANDATORY**: All commit messages MUST be written in **Korean (한글)** ONLY.
+
+**DO NOT USE ENGLISH FOR COMMIT MESSAGES.**
+
+- ❌ NEVER use English for commit messages
+- ✅ ALWAYS use Korean (한글) for commit messages
+- ✅ Use Korean for ALL commit message generation (manual and auto-generated)
+- ✅ When generating commit messages automatically, you MUST write in Korean
+- ✅ Subject, body, and all parts of commit messages must be in Korean
+
+**This rule applies to:**
+- Manual commit messages
+- Auto-generated commit messages
+- AI-generated commit messages
+- All commit message suggestions
+
+---
+
+## 2. Commit Message Format
+
+Follow conventional commits format in Korean:
+
+```
+<type>: <subject>
+
+<body (optional)>
+
+<footer (optional)>
+```
+
+### Types (한글 설명)
+- `feat`: 새로운 기능 추가
+- `fix`: 버그 수정
+- `docs`: 문서 변경
+- `style`: 코드 포맷팅, 세미콜론 누락 등 (기능 변경 없음)
+- `refactor`: 코드 리팩토링
+- `test`: 테스트 코드 추가/수정
+- `chore`: 빌드 업무 수정, 패키지 매니저 설정 등
+- `setup`: 프로젝트 초기 설정
+- `perf`: 성능 개선
+
+### Subject Rules
+- 50자 이내로 간결하게 작성
+- 명령형으로 작성 (예: "추가", "수정", "변경")
+- 첫 글자는 대문자로 시작하지 않음 (한글의 경우 자연스럽게)
+- 마지막에 마침표(.) 사용하지 않음
+
+### Body Rules (선택사항)
+- 변경 사항을 상세히 설명
+- "왜" 변경했는지 설명
+- 각 항목은 `-` 또는 `*`로 시작하는 리스트 형식
+
+---
+
+## 3. Examples
+
+### Good Examples
+
+```
+feat: 로그인 페이지 추가
+
+- 이메일 OTP 인증 기능 구현
+- react-hook-form과 zod를 사용한 폼 검증
+```
+
+```
+fix: 초대장 만료 체크 로직 수정
+
+- 만료 시간 비교 로직에서 타임존 처리 오류 수정
+- expired_at 필드가 null일 때 처리 추가
+```
+
+```
+docs: 프로젝트 구조 문서 추가
+
+- App Router 세그먼트 co-location 패턴 설명
+- 각 라우트별 폴더 구조 가이드 추가
+```
+
+```
+chore: Biome 설정 추가
+
+- Biome 린터 및 포맷터 설정
+- package.json에 lint, format 스크립트 추가
+```
+
+### Bad Examples
+
+```
+Add login page  // ❌ 영어 사용
+```
+
+```
+feat: 로그인 페이지 추가.  // ❌ 마침표 사용
+```
+
+```
+FEAT: 로그인 페이지 추가  // ❌ 대문자 타입
+```
+
+---
+
+## 4. Multi-line Commit Messages
+
+여러 변경사항이 있을 때:
+
+```
+feat: 초기 라우트 구조 및 레이아웃 설정
+
+- 레이아웃 메타데이터 업데이트
+- 홈 페이지를 랜딩 placeholder로 변경
+- 로그인, 마이페이지, 관리자 로그인, 초대장 페이지 구조 추가
+```
+
+---
+
+## 5. Breaking Changes
+
+Breaking change가 있을 때:
+
+```
+feat: API 응답 형식 변경
+
+BREAKING CHANGE: Server Action 응답 형식이 { ok, data }에서 { success, payload }로 변경됨
+
+- 기존 { ok: true, data } 형식 제거
+- 새로운 { success: true, payload } 형식으로 통일
+```
+
+---
+
+## 6. Auto-generation Rules
+
+**CRITICAL**: When generating commit messages automatically:
+- ✅ **MUST ALWAYS use Korean language** - Never use English
+- ✅ Follow the format above
+- ✅ Include relevant details about changes in Korean
+- ✅ Use appropriate type based on changes
+- ✅ Translate all English words to Korean
+- ✅ Write subject and body entirely in Korean
+
+**Example of correct auto-generation:**
+```
+feat: 프로젝트 의존성 및 설정 업데이트
+
+- pnpm을 패키지 매니저로 추가하고 package.json에 버전 명시
+- 새로운 의존성 추가: @hookform/resolvers, @tanstack/react-query, react-hook-form, zod
+- package-lock.json 제거 및 pnpm-lock.yaml 추가
+- .gitignore에 pnpm 관련 파일 및 IDE 설정 추가
+- React Query 클라이언트 관리를 위한 QueryProvider 생성 및 레이아웃에 통합
+- Biome 포맷팅을 위한 VSCode 설정 추가
+```
+
+**NOT like this (WRONG):**
+```
+feat: update project dependencies and configuration  // ❌ English
+```
+
+---
+
+## 7. Checklist
+
+Before committing, ensure:
+- [ ] Commit message is in Korean
+- [ ] Type is appropriate (feat/fix/docs/etc.)
+- [ ] Subject is clear and concise
+- [ ] Body explains "what" and "why" (if needed)
+- [ ] Follows conventional commit format
